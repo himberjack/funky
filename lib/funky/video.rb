@@ -3,21 +3,12 @@ require 'funky/html/parser'
 require 'funky/url'
 
 module Funky
-  class Video
-    attr_reader :data
+  class Video < GraphRootNode
+
     attr_accessor :counters
 
     @@html_page = HTML::Page.new
     @@html_parser = HTML::Parser.new
-
-    def initialize(data)
-      @data = data
-    end
-
-    # @return [String] the video ID.
-    def id
-      data[:id]
-    end
 
     # @return [DateTime] the created time of the video.
     def created_time
@@ -27,12 +18,33 @@ module Funky
 
     # @return [String] the description of the video.
     def description
-      data[:description]
+      data[:description].to_s
     end
 
     # @return [Float] the length (duration) of the video.
     def length
       data[:length]
+    end
+
+    # @return [String] the title of the video.
+    def title
+      data[:title].to_s
+    end
+
+    # see https://developers.facebook.com/docs/graph-api/reference/video/
+    # @return [Integer] the total number of likes for the video.
+    def count_likes
+      data[:likes][:summary][:total_count]
+    end
+
+    # @return [Integer] the total number of comments for the video.
+    def count_comments
+      data[:comments][:summary][:total_count]
+    end
+
+    # @return [Integer] the total number of reactions for the video.
+    def count_reactions
+      data[:reactions][:summary][:total_count]
     end
 
     # @return [String] the picture URL of the video.
@@ -50,6 +62,7 @@ module Funky
       data.fetch(:from)[:id]
     end
 
+    # @return [String] the url of Facebook page for the video.
     def page_url
       "https://www.facebook.com/#{page_id}"
     end
@@ -101,7 +114,7 @@ module Funky
     # @return [Funky::Video] the data scraped from Facebook's HTML
     #   and encapsulated into a Funky::Video object.
     def self.find(video_id)
-      counters = @@html_parser.parse html: @@html_page.get(video_id: video_id)
+      counters = @@html_parser.parse html: @@html_page.get(video_id: video_id), video_id: video_id
       new counters.merge(id: video_id)
     end
 
@@ -121,37 +134,6 @@ module Funky
     end
 
   private
-
-    def self.fetch_and_parse_data(ids)
-      if ids.is_a?(Array) && ids.size > 1
-        response = Connection::API.batch_request(ids: ids, fields: fields)
-      else
-        id = ids.is_a?(Array) ? ids.first : ids
-        response = Connection::API.request(id: id, fields: fields)
-      end
-      parse response
-    rescue ContentNotFound
-      []
-    end
-
-    def self.parse(response)
-      if response.code == '200'
-        body = JSON.parse response.body, symbolize_names: true
-        if body.is_a? Array
-          body.select{|item| item[:code] == 200}.collect do |item|
-            JSON.parse(item[:body], symbolize_names: true)
-          end.compact
-        else
-          [body]
-        end
-      else
-        raise ContentNotFound, "Error #{response.code}: #{response.body}"
-      end
-    end
-
-    def self.instantiate_collection(items)
-      items.collect { |item| new item }
-    end
 
     def self.fields
       [
