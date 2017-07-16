@@ -11,8 +11,12 @@ module Funky
     #
     # @return [Funky::Page] containing the data fetched by Facebook Graph API.
     def self.find(page_id)
-      page = Funky::Connection::API.fetch("#{page_id}?fields=name,username,location")
-      new(page)
+      page = Funky::Connection::API.fetch("#{page_id}?fields=name,username,location,fan_count,featured_video")
+      if page[:name].nil?
+        raise ContentNotFound, "Page not found with ID #{page_id}"
+      else
+        new(page)
+      end
     end
 
     # Fetches data from Facebook Graph API and returns an array of Funky::Video
@@ -32,6 +36,21 @@ module Funky
       videos.map {|video| Video.new(video) }
     end
 
+    # Fetches data from Facebook Graph API and returns an array of Funky::Post
+    # objects belong to the caller page.
+    #
+    # @example Getting posts under a page
+    #   page = Funky::Page.find 'FullscreenInc'
+    #   page.posts
+    #   # => [#<Funky::Post @data={...}>, #<Funky::Post @data={...}>]
+    #
+    # @return [Array<Funky::Post>] multiple Funky::Post objects containing data
+    #   fetched by Facebook Graph API.
+    def posts
+      posts = Funky::Connection::API.fetch_all("#{id}/posts?fields=type,created_time")
+      posts.map {|post| Post.new(post)}
+    end
+
     # @note
     #   For example, for www.facebook.com/platform the username is 'platform'.
     # @see https://developers.facebook.com/docs/graph-api/reference/page/
@@ -47,6 +66,16 @@ module Funky
     # @return [String] the name of the Facebook Page.
     def name
       data[:name]
+    end
+
+    # @return [Integer] the number of people who likes the Facebook page.
+    def fan_count
+      data[:fan_count]
+    end
+
+    # @return [Boolean] if the Facebook page has featured_video
+    def has_featured_video?
+      !data[:featured_video].nil?
     end
 
     # @note

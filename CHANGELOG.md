@@ -6,6 +6,48 @@ For more information about changelogs, check
 [Keep a Changelog](http://keepachangelog.com) and
 [Vandamme](http://tech-angels.github.io/vandamme).
 
+## 0.2.26 - 2017/06/06
+
+* [ENHANCEMENT] Raise ContentNotFound if Page#find is called with an invalid URI
+
+## 0.2.25 - 2017/05/16
+
+* [FEATURE] Retry up to 5 times if Facebook responds with error
+
+## 0.2.24 - 2017/05/10
+
+* [BUGFIX] Raise Funky::ContentNotFound error when a page does not return
+its name. This change will filter out cases a full url of website entered
+as page_id argument of `Funky::Page#find`, instead of username.
+
+## 0.2.23 - 2017/05/09
+
+* [FEATURE] Print out logs for each pagination
+* [BUGFIX] Use cursor-based pagination for `Funky::Page#posts` to resolve
+infinite loop issue when the page has life events with old backdated time.
+
+## 0.2.22 - 2017/05/05
+
+* [FEATURE] Add `Funky::Page#posts`.
+* [FEATURE] Add `Funky::Page#has_featured_video?`.
+
+## 0.2.21 - 2017/05/03
+
+* [FEATURE] Add `Funky::Page#fan_count`.
+
+## 0.2.20 - 2017/04/20
+
+* [BUGFIX] Fix `Funky::Page#videos` by adding condition for an edge case.
+
+## 0.2.19 - 2017/04/20
+
+* [IMPROVEMENT] Retry 3 times after a server error or a socket error, to fetch
+  data even with any temporary issue from Facebook.
+
+## 0.2.18 - 2017/04/19
+
+* [ENHANCEMENT] `Funky::Page#videos` now fetches more videos by time-based pagination.
+
 ## 0.2.17 - 2017/04/17
 
 * [FEATURE] Add `Funky::Page.find` class method to find a page by its page ID.

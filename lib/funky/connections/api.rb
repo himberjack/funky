@@ -1,22 +1,65 @@
-require 'funky/connections/base'
 require 'json'
+require 'time'
+
+require 'funky/connections/base'
 
 module Funky
   # @api private
   module Connection
     class API < Base
+      def self.fetch_all(path_query)
+        uri = URI "https://#{host}/v2.9/#{path_query}&limit=100&access_token=#{app_id}%7C#{app_secret}"
+        fetch_data_with_paging_token(uri)
+      end
+
+      def self.fetch_data_with_paging_token(uri)
+        json = json_for(uri)
+        if !json[:data].empty? && json[:paging][:next]
+          next_paging_uri = URI json[:paging][:next]
+          puts "Fetching '#{uri.path}' with #{ URI.decode_www_form(next_paging_uri.query).to_h['after'] }"
+          json[:data] + fetch_data_with_paging_token(next_paging_uri)
+        else
+          json[:data]
+        end
+      end
+
       def self.fetch(path_query, is_array: false)
         uri = URI "https://#{host}/v2.8/#{path_query}&limit=100&access_token=#{app_id}%7C#{app_secret}"
-        is_array ? fetch_multiple_pages(uri) : json_for(uri)
+        is_array ? fetch_multiple_pages(uri).uniq : json_for(uri)
+      rescue URI::InvalidURIError
+        raise Funky::ContentNotFound, "Invalid URL"
       end
 
       def self.fetch_multiple_pages(uri)
+        puts "Fetching '#{uri.path}' until #{ URI.decode_www_form(uri.query).to_h['until'] || 'now'}"
         json = json_for(uri)
-        if json[:paging][:next]
-          next_paging_uri = URI json[:paging][:next]
-          json[:data] + fetch_multiple_pages(next_paging_uri)
+        if json[:data].empty?
+          @try_count ||= 0
+          if @previous_timestamp && @try_count < 1 && (Date.parse @previous_timestamp rescue nil)
+            timestamp = (Date.parse(@previous_timestamp) - 1).strftime('%F')
+            @try_count += 1
+            @previous_timestamp = timestamp
+            new_query = URI.decode_www_form(uri.query).to_h.merge('until' => timestamp)
+            uri.query = URI.encode_www_form(new_query)
+            json[:data] + fetch_multiple_pages(uri)
+          else
+            []
+          end
         else
-          json[:data]
+          timestamp = if json[:data].count == 1
+              Date.parse(json[:data][-1][:created_time]).strftime('%F')
+            else
+              Time.parse(json[:data][-1][:created_time]).to_i
+            end
+          if @previous_timestamp == timestamp
+            []
+          else
+            @try_count = 0
+            @previous_timestamp = timestamp
+            new_query = URI.decode_www_form(uri.query).to_h.merge('until' => timestamp)
+            uri.query = URI.encode_www_form(new_query)
+            json[:data] + fetch_multiple_pages(uri)
+          end
         end
       end
 

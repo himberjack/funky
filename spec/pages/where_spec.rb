@@ -6,42 +6,6 @@ describe 'Page' do
   let(:unknown_page_id) { 'does-not-exist' }
   let(:another_page_id) { '526533744142224' }
 
-  describe '#videos' do
-    let(:page) { Funky::Page.find('FullscreenInc') }
-    let(:videos) { page.videos }
-
-    it { expect(videos[0]).to be_a(Funky::Video) }
-    specify 'returns videos more than one page' do
-      expect(videos.count).to be > 100
-    end
-
-    context 'given a video instantiated by #videos' do
-      let(:video) { videos.first }
-
-      it { expect(video.title).to be_a(String) }
-      it { expect(video.count_likes).to be_a(Integer) }
-      it { expect(video.count_comments).to be_a(Integer) }
-      it { expect(video.count_reactions).to be_a(Integer) }
-    end
-  end
-
-  describe '.find(page_id)' do
-    let(:page) { Funky::Page.find(page_id) }
-
-    context 'given an existing page ID was passed' do
-      let(:page_id) { existing_page_id }
-
-      include_examples 'id and name properties'
-      include_examples 'location properties'
-    end
-
-    context 'given a non-existing page ID was passed' do
-      let(:page_id) { unknown_page_id }
-
-      it { expect { page }.to raise_error(Funky::ContentNotFound) }
-    end
-  end
-
   describe '.where(id: page_ids)' do
     let(:pages) { Funky::Page.where(id: page_ids) }
 
@@ -80,13 +44,27 @@ describe 'Page' do
       end
     end
 
-    context 'given a connection error' do
-      let(:page_ids) { [existing_page_id, another_page_id] }
-      let(:socket_error) { SocketError.new }
+    context 'given a request that raises' do
+      before { expect(Net::HTTP).to receive(:start).once.and_raise http_error }
 
-      before { expect(Net::HTTP).to(receive(:start).and_raise socket_error) }
+      context 'a SocketError' do
+        let(:page_ids) { [existing_page_id, another_page_id] }
+        let(:http_error) { SocketError.new }
 
-      it { expect { pages }.to raise_error(Funky::ConnectionError) }
+        context 'every time' do
+          before { expect(Net::HTTP).to receive(:start).at_least(:once).and_raise http_error }
+
+          it { expect { pages }.to raise_error(Funky::ConnectionError) }
+        end
+
+        context 'but works the second time' do
+          before { expect(Net::HTTP).to receive(:start).at_least(:once).and_return retry_response }
+          before { allow(retry_response).to receive(:body) }
+          let(:retry_response) { Net::HTTPOK.new nil, nil, nil }
+
+          it { expect { pages }.not_to raise_error }
+        end
+      end
     end
   end
 end
