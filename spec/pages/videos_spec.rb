@@ -34,26 +34,6 @@ describe 'Page' do
       end
     end
 
-    context 'given a page with hundreds of videos' do
-      let(:page_id) { nextflix_page_id }
-
-      # NOTE: This test fails if we only strictly followed the Facebook
-      # documentation of fetching pages with timestamp-based pagination.
-      specify 'includes the oldest video of the page' do
-        expect(videos.map {|v| v.id}).to include '68196585394'
-      end
-    end
-
-    context 'given another page with hundreds of videos' do
-      let(:page_id) { nbc_page_id }
-
-      # NOTE: This test fails if we only strictly followed the Facebook
-      # documentation of fetching pages with timestamp-based pagination.
-      specify 'includes the oldest video of the page' do
-        expect(videos.map {|v| v.id}).to include '10152197716420746'
-      end
-    end
-
     context 'given a request that raises' do
       let(:response) { Net::HTTPServerError.new nil, nil, nil }
       let(:response_body) { '{"name":"Fullscreen"}' }
@@ -77,6 +57,20 @@ describe 'Page' do
 
           it { expect{ page }.not_to raise_error }
         end
+      end
+    end
+  end
+
+  describe '#videos with since option' do
+    let(:page) { Funky::Page.find(page_id) }
+    let(:videos) { page.videos(since: since_date) }
+
+    context 'given an existing page ID and since date' do
+      let(:page_id) { fullscreen_page_id }
+      let(:since_date) { "2017-07-27" }
+
+      specify 'returns the first video of since date as the last' do
+        expect(videos.last.id).to eq('1517225178321185')
       end
     end
   end

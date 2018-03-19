@@ -6,6 +6,32 @@ For more information about changelogs, check
 [Keep a Changelog](http://keepachangelog.com) and
 [Vandamme](http://tech-angels.github.io/vandamme).
 
+## 0.2.31 - 2017/10/25
+
+* [BUGFIX] Revert the change of version 0.2.29 and do not use request to get app
+access token.
+* [ENHANCEMENT] Allow funky to scrape view count for more videos, by changing
+the way how to scrape.
+
+## 0.2.30 - 2017/10/16
+
+* [BUGFIX] Test should pass when call Page#videos. Partly revert the change
+of version 0.2.28
+
+## 0.2.29 - 2017/10/16
+
+* [ENHANCEMENT] Use request to get app access token. Do not use
+`app_id|app_secret` string.
+
+## 0.2.28 - 2017/10/05
+
+* [FEATURE] Add `since` option when it calls Page#videos and Page#posts to reduce
+amount of requests when it gets only recent items.
+
+## 0.2.27 - 2017/08/28
+
+* [BUGFIX] Fetch the correct view count even for non-English pages
+
 ## 0.2.26 - 2017/06/06
 
 * [ENHANCEMENT] Raise ContentNotFound if Page#find is called with an invalid URI
